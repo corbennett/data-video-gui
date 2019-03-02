@@ -70,15 +70,15 @@ class dataVideo():
         
         self.advanceFrameButton = QtGui.QPushButton('>')
         self.advanceFrameButton.clicked.connect(self.advanceFrame)
-        self.controlPanelLayout.addWidget(self.advanceFrameButton)
+        self.controlPanelLayout.addWidget(self.advanceFrameButton, 0, 0)
         
         self.backFrameButton = QtGui.QPushButton('<')
         self.backFrameButton.clicked.connect(self.backFrame)
-        self.controlPanelLayout.addWidget(self.backFrameButton)
+        self.controlPanelLayout.addWidget(self.backFrameButton, 0, 1)
         
         self.frameDisplayBox = QtGui.QLineEdit()
         self.frameDisplayBox.editingFinished.connect(self.goToFrame)
-        self.controlPanelLayout.addWidget(self.frameDisplayBox)
+        self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2)
 
     def advanceFrame(self):
         ret, self.frame = self.vid.read()
