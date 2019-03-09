@@ -31,9 +31,12 @@ class dataVideo():
         self.mainWidget.setLayout(self.mainLayout)
         self.createMenuBar()
         self.createControlPanel()
+        self.mainWin.keyPressEvent = self.keyPressCallback
                 
         self.imageLayout = pg.GraphicsLayoutWidget()
         self.imageViewBox = self.imageLayout.addViewBox(lockAspect=1,invertY=True,enableMouse=True,enableMenu=True)
+        self.imageItem = pg.ImageItem()
+        self.imageViewBox.addItem(self.imageItem)   
         
         self.mainLayout.addWidget(self.imageLayout)
         self.mainWin.show()
@@ -43,9 +46,10 @@ class dataVideo():
         self.videoFileName = QtGui.QFileDialog.getOpenFileName()
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
+        self.updatePlot()
         
-        self.imageItem = pg.ImageItem(self.frame[:, :, 0].T)
-        self.imageViewBox.addItem(self.imageItem)
+#        self.imageItem = pg.ImageItem(self.frame[:, :, 0].T)
+#        self.imageViewBox.addItem(self.imageItem)
         self.totalVidFrames = self.vid.get(cv2.CAP_PROP_FRAME_COUNT)
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
         self.frameIndex = 0
@@ -68,14 +72,14 @@ class dataVideo():
         self.controlPanelLayout = QtGui.QGridLayout()
         self.mainLayout.addLayout(self.controlPanelLayout, 0, 0)
         
-        self.advanceFrameButton = QtGui.QPushButton('>')
-        self.advanceFrameButton.clicked.connect(self.advanceFrame)
-        self.controlPanelLayout.addWidget(self.advanceFrameButton, 0, 0)
-        
         self.backFrameButton = QtGui.QPushButton('<')
         self.backFrameButton.clicked.connect(self.backFrame)
-        self.controlPanelLayout.addWidget(self.backFrameButton, 0, 1)
+        self.controlPanelLayout.addWidget(self.backFrameButton, 0, 0)
         
+        self.advanceFrameButton = QtGui.QPushButton('>')
+        self.advanceFrameButton.clicked.connect(self.advanceFrame)
+        self.controlPanelLayout.addWidget(self.advanceFrameButton, 0, 1)
+              
         self.frameDisplayBox = QtGui.QLineEdit()
         self.frameDisplayBox.editingFinished.connect(self.goToFrame)
         self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2)
@@ -97,7 +101,8 @@ class dataVideo():
     
     def goToFrame(self):
         if self.vid is not None:
-            self.vid.set(cv2.CAP_PROP_POS_FRAMES, int(self.frameDisplayBox.text())+1)
+#            self.vid.set(cv2.CAP_PROP_POS_FRAMES, int(self.frameDisplayBox.text())+1)
+            self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex)
             ret, self.frame = self.vid.read()
             if ret:
                 self.updatePlot()
@@ -109,7 +114,15 @@ class dataVideo():
         self.frameIndex = int(self.vid.get(cv2.CAP_PROP_POS_FRAMES)-1)
         self.frameDisplayBox.setText(str(self.frameIndex))
                 
+    def keyPressCallback(self, event):
         
+        if event.key() == QtCore.Qt.Key_Left:
+            self.backFrame()
+        if event.key() == QtCore.Qt.Key_Right:
+            self.advanceFrame()
+        
+
+
         
 if __name__ == '__main__':
     start()
