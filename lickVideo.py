@@ -52,7 +52,10 @@ class lickVideo():
         self.mainWin.show()
     
     def getVideoFile(self):
-
+        
+        if self.vid is not None:
+            self.vid.release()
+            
         self.videoFileName = QtGui.QFileDialog.getOpenFileName()
         self.vid = cv2.VideoCapture(str(self.videoFileName))
         _, self.frame = self.vid.read()
@@ -62,6 +65,7 @@ class lickVideo():
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
         self.frameIndex = 0
         self.frameDisplayBox.setText(str(self.frameIndex))
+        self.totalFrameCountLabel.setText('/' + str(int(self.totalVidFrames)))
         
         if self.annotationDataFile is None:
             self.resetAnnotationData()
@@ -71,6 +75,8 @@ class lickVideo():
     def loadAnnotationData(self):
         self.annotationDataFile = QtGui.QFileDialog.getOpenFileName()
         self.lickStates = np.load(str(self.annotationDataFile))
+        if self.vid is not None:
+            assert(len(self.lickStates)==self.totalVidFrames)
     
     def saveAnnotationData(self):
         annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName()
@@ -98,60 +104,44 @@ class lickVideo():
         file_menu.addAction(open_action)
         file_menu.addAction(loadAnnotations_action)
         file_menu.addAction(saveAnnotations_action)
-     
+             
     def createControlPanel(self):
         #make layout for gui controls and add to main layout
         self.controlPanelLayout = QtGui.QGridLayout()
         self.mainLayout.addLayout(self.controlPanelLayout, 0, 0)
         
+        self.playVideoButton = QtGui.QPushButton('>')
+        self.playVideoButton.setCheckable(True)
+        self.playVideoButton.clicked.connect(self.playVideo)
+        self.controlPanelLayout.addWidget(self.playVideoButton, 0, 0)
+        self.playTimer = QtCore.QTimer()
+        self.playTimer.timeout.connect(self.advanceFrame)
+        
         frameLabel = QtGui.QLabel("Frame:")
-        self.controlPanelLayout.addWidget(frameLabel)
+        self.controlPanelLayout.addWidget(frameLabel, 0, 1)
         
         self.frameDisplayBox = QtGui.QLineEdit()
         self.frameDisplayBox.editingFinished.connect(self.goToFrame)
         self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2)
         
+        self.totalFrameCountLabel = QtGui.QLabel("/")
+        self.controlPanelLayout.addWidget(self.totalFrameCountLabel, 0, 3)
+        
         self.lickRadioButton = QtGui.QRadioButton('lick')
         self.lickRadioButton.clicked.connect(self.lickRadioButtonCallback)
-        self.controlPanelLayout.addWidget(self.lickRadioButton)
+        self.lickRadioButton.setToolTip('Shortcut: L')
+        self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4)
         
         self.contactRadioButton = QtGui.QRadioButton('other contact')
         self.contactRadioButton.clicked.connect(self.contactRadioButtonCallback)
-        self.controlPanelLayout.addWidget(self.contactRadioButton)
+        self.contactRadioButton.setToolTip('Shortcut: C')
+        self.controlPanelLayout.addWidget(self.contactRadioButton, 0, 5)
         
         self.noLickRadioButton = QtGui.QRadioButton('no lick')
         self.noLickRadioButton.clicked.connect(self.noLickRadioButtonCallback)
-        self.controlPanelLayout.addWidget(self.noLickRadioButton)
+        self.noLickRadioButton.setToolTip('Shortcut: N')
+        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 6)
 
-#    def advanceFrame(self):
-#        ret, self.frame = self.vid.read()
-#        if ret:
-#            self.updatePlot()
-#        else:
-#            print('Error reading video. Likely reached video limit.')
-#    
-#    def backFrame(self):
-#        self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex)
-#        ret, self.frame = self.vid.read()
-#        if ret:
-#            self.updatePlot()
-#        else:
-#            print('Error reading video. Likely reached video limit.')
-#    
-#    def goToFrame(self):
-#        if self.vid is not None:
-#            self.vid.set(cv2.CAP_PROP_POS_FRAMES, int(self.frameDisplayBox.text()))
-#            ret, self.frame = self.vid.read()
-#            if ret:
-#                self.updatePlot()
-#            else:
-#                print('Invalid frame given')
-#            
-#    def updatePlot(self):
-#        self.imageItem.setImage(self.frame[:,:,0].T)
-#        self.frameIndex = int(self.vid.get(cv2.CAP_PROP_POS_FRAMES)-1)
-#        self.frameDisplayBox.setText(str(self.frameIndex))
-#        self.setRadioButtonStates()
     def advanceFrame(self):
         self.frameIndex += 1
         if self.frameIndex > self.totalVidFrames:
@@ -174,6 +164,13 @@ class lickVideo():
             self.frameIndex = 0
         
         self.updatePlot()
+        self.frameDisplayBox.clearFocus()
+    
+    def playVideo(self):
+        if self.playVideoButton.isChecked():
+            self.playTimer.start()
+        else:
+            self.playTimer.stop()            
             
     def updatePlot(self):
         self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex)
