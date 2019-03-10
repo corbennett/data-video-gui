@@ -73,13 +73,20 @@ class lickVideo():
             assert(len(self.lickStates)==self.totalVidFrames)
         
     def loadAnnotationData(self):
-        self.annotationDataFile = QtGui.QFileDialog.getOpenFileName()
+        self.annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npy')
         self.lickStates = np.load(str(self.annotationDataFile))
         if self.vid is not None:
             assert(len(self.lickStates)==self.totalVidFrames)
     
     def saveAnnotationData(self):
-        annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName()
+        if hasattr(self, 'videoFileName'):
+            basedir = os.path.dirname(self.videoFileName)
+            baseVidName = os.path.splitext(os.path.basename(self.videoFileName))[0]
+            suggestedSaveName = os.path.join(basedir, baseVidName + '_annotations.npy')
+        else:
+            suggestedSaveName = 'annotations.npy'
+            
+        annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', suggestedSaveName)
         np.save(str(annotationDataFileSaveName), self.lickStates)
         
     def resetAnnotationData(self):

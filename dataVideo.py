@@ -24,6 +24,7 @@ class dataVideo():
     def __init__(self, app):
         self.app = app
         self.vid = None
+        self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
         self.mainWidget = QtGui.QWidget()
         self.mainWin.setCentralWidget(self.mainWidget)
@@ -42,18 +43,22 @@ class dataVideo():
         self.mainWin.show()
     
     def getVideoFile(self):
-
+        
+        if self.vid is not None:
+            self.vid.release()
+            
         self.videoFileName = QtGui.QFileDialog.getOpenFileName()
-        self.vid = cv2.VideoCapture(self.videoFileName)
+        self.vid = cv2.VideoCapture(str(self.videoFileName))
         _, self.frame = self.vid.read()
         self.updatePlot()
-        
-#        self.imageItem = pg.ImageItem(self.frame[:, :, 0].T)
-#        self.imageViewBox.addItem(self.imageItem)
+
         self.totalVidFrames = self.vid.get(cv2.CAP_PROP_FRAME_COUNT)
+        print(self.totalVidFrames)
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
         self.frameIndex = 0
         self.frameDisplayBox.setText(str(self.frameIndex))
+        self.totalFrameCountLabel.setText('/' + str(int(self.totalVidFrames)))
+        
         
     def createMenuBar(self):
         # create an instance of menu bar
@@ -72,47 +77,65 @@ class dataVideo():
         self.controlPanelLayout = QtGui.QGridLayout()
         self.mainLayout.addLayout(self.controlPanelLayout, 0, 0)
         
-        self.backFrameButton = QtGui.QPushButton('<')
-        self.backFrameButton.clicked.connect(self.backFrame)
-        self.controlPanelLayout.addWidget(self.backFrameButton, 0, 0)
+        self.playVideoButton = QtGui.QPushButton('Play')
+        self.playVideoButton.setCheckable(True)
+        self.playVideoButton.clicked.connect(self.playVideo)
+        self.controlPanelLayout.addWidget(self.playVideoButton, 0, 0)
+        self.playTimer = QtCore.QTimer()
+        self.playTimer.setInterval(10)
+        self.playTimer.timeout.connect(self.advanceFrame)
         
-        self.advanceFrameButton = QtGui.QPushButton('>')
-        self.advanceFrameButton.clicked.connect(self.advanceFrame)
-        self.controlPanelLayout.addWidget(self.advanceFrameButton, 0, 1)
-              
+        frameLabel = QtGui.QLabel("Frame:")
+        self.controlPanelLayout.addWidget(frameLabel, 0, 1)
+        
         self.frameDisplayBox = QtGui.QLineEdit()
         self.frameDisplayBox.editingFinished.connect(self.goToFrame)
         self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2)
-
+        
+        self.totalFrameCountLabel = QtGui.QLabel("/")
+        self.controlPanelLayout.addWidget(self.totalFrameCountLabel, 0, 3)
+        
     def advanceFrame(self):
-        ret, self.frame = self.vid.read()
-        if ret:
-            self.updatePlot()
-        else:
-            print('Error reading video. Likely reached video limit.')
-    
+        self.frameIndex += 1
+        if self.frameIndex > self.totalVidFrames:
+            self.frameIndex = self.totalVidFrames
+        
+        self.updatePlot()
+        
     def backFrame(self):
-        self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex - 1)
-        ret, self.frame = self.vid.read()
-        if ret:
-            self.updatePlot()
-        else:
-            print('Error reading video. Likely reached video limit.')
-    
+        self.frameIndex -= 1
+        if self.frameIndex < 0:
+            self.frameIndex = 0
+        
+        self.updatePlot()
+
     def goToFrame(self):
-        if self.vid is not None:
-#            self.vid.set(cv2.CAP_PROP_POS_FRAMES, int(self.frameDisplayBox.text())+1)
-            self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex)
-            ret, self.frame = self.vid.read()
-            if ret:
-                self.updatePlot()
-            else:
-                print('Invalid frame given')
+        try:
+            self.frameIndex = int(self.frameDisplayBox.text())
+            if self.frameIndex > self.totalVidFrames:
+                self.frameIndex = self.totalVidFrames
+            elif self.frameIndex < 0:
+                self.frameIndex = 0
+            
+            self.updatePlot()
+            self.frameDisplayBox.clearFocus()
+        except:
+            if self.vid is not None:
+                print('Invalid frame number')
+    
+    def playVideo(self):
+        if self.playVideoButton.isChecked():
+            self.playTimer.start()
+        else:
+            self.playTimer.stop()            
             
     def updatePlot(self):
-        self.imageItem.setImage(self.frame[:,:,0].T)
-        self.frameIndex = int(self.vid.get(cv2.CAP_PROP_POS_FRAMES)-1)
-        self.frameDisplayBox.setText(str(self.frameIndex))
+        self.vid.set(cv2.CAP_PROP_POS_FRAMES, self.frameIndex)
+        ret, self.frame = self.vid.read()
+        if ret:
+            self.imageItem.setImage(self.frame[:,:,0].T)
+            self.frameDisplayBox.setText(str(self.frameIndex))
+            
                 
     def keyPressCallback(self, event):
         
@@ -120,9 +143,9 @@ class dataVideo():
             self.backFrame()
         if event.key() == QtCore.Qt.Key_Right:
             self.advanceFrame()
-        
-
-
+        if event.key() == QtCore.Qt.Key_Space:
+            self.playVideoButton.click()
+            
         
 if __name__ == '__main__':
     start()
