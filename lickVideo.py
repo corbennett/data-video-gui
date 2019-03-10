@@ -110,11 +110,12 @@ class lickVideo():
         self.controlPanelLayout = QtGui.QGridLayout()
         self.mainLayout.addLayout(self.controlPanelLayout, 0, 0)
         
-        self.playVideoButton = QtGui.QPushButton('>')
+        self.playVideoButton = QtGui.QPushButton('Play')
         self.playVideoButton.setCheckable(True)
         self.playVideoButton.clicked.connect(self.playVideo)
         self.controlPanelLayout.addWidget(self.playVideoButton, 0, 0)
         self.playTimer = QtCore.QTimer()
+        self.playTimer.setInterval(10)
         self.playTimer.timeout.connect(self.advanceFrame)
         
         frameLabel = QtGui.QLabel("Frame:")
@@ -157,14 +158,18 @@ class lickVideo():
         self.updatePlot()
 
     def goToFrame(self):
-        self.frameIndex = int(self.frameDisplayBox.text())
-        if self.frameIndex > self.totalVidFrames:
-            self.frameIndex = self.totalVidFrames
-        elif self.frameIndex < 0:
-            self.frameIndex = 0
-        
-        self.updatePlot()
-        self.frameDisplayBox.clearFocus()
+        try:
+            self.frameIndex = int(self.frameDisplayBox.text())
+            if self.frameIndex > self.totalVidFrames:
+                self.frameIndex = self.totalVidFrames
+            elif self.frameIndex < 0:
+                self.frameIndex = 0
+            
+            self.updatePlot()
+            self.frameDisplayBox.clearFocus()
+        except:
+            if self.vid is not None:
+                print('Invalid frame number')
     
     def playVideo(self):
         if self.playVideoButton.isChecked():
@@ -190,21 +195,13 @@ class lickVideo():
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
-        print('lick')
-        print(self.lickStates[:10])
     
     def noLickRadioButtonCallback(self):
-        if self.lickStates is not None:
-            self.lickStates[self.frameIndex] = 0
-            print('no lick')
-            print(self.lickStates[:10])
+        self.lickStates[self.frameIndex] = 0
 
     def contactRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 2
-        print('contact')
-        print(self.lickStates[:10])
-
-    
+  
     def keyPressCallback(self, event):
         
         if event.key() == QtCore.Qt.Key_Left:
@@ -217,7 +214,8 @@ class lickVideo():
             self.noLickRadioButton.click()
         if event.key() == QtCore.Qt.Key_C:
             self.contactRadioButton.click()
-
+        if event.key() == QtCore.Qt.Key_Space:
+            self.playVideoButton.click()
             
     
         
