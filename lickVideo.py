@@ -17,6 +17,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 import cv2
 import os
+from datetime import datetime
 
 def start():
     QtGui.QApplication.setGraphicsSystem("raster")
@@ -37,6 +38,7 @@ class lickVideo():
         self.mainWin = QtGui.QMainWindow()
         self.mainWidget = QtGui.QWidget()
         self.mainWin.setCentralWidget(self.mainWidget)
+        self.mainWin.closeEvent = self.closeEvent
         self.mainLayout = QtGui.QGridLayout()
         self.mainWidget.setLayout(self.mainLayout)
         self.createMenuBar()
@@ -50,14 +52,16 @@ class lickVideo():
         
         self.mainLayout.addWidget(self.imageLayout)
         self.mainWin.show()
+
+        self.annotationDataSaved = False
     
     def getVideoFile(self):
         
         if self.vid is not None:
             self.vid.release()
             
-        self.videoFileName = QtGui.QFileDialog.getOpenFileName()
-        self.vid = cv2.VideoCapture(str(self.videoFileName))
+        self.videoFileName = str(QtGui.QFileDialog.getOpenFileName())
+        self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
         self.updatePlot()
 
@@ -71,23 +75,40 @@ class lickVideo():
             self.resetAnnotationData()
         else:
             assert(len(self.lickStates)==self.totalVidFrames)
-        
+
+        self.annotationDataSaved = False
+
     def loadAnnotationData(self):
         self.annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npy')
         self.lickStates = np.load(str(self.annotationDataFile))
         if self.vid is not None:
             assert(len(self.lickStates)==self.totalVidFrames)
     
-    def saveAnnotationData(self):
+    def saveAnnotationData(self, automaticName=False):
+        now = datetime.now()
+        dateString = now.strftime("%m%d%Y_%H%M%S")
+        
         if hasattr(self, 'videoFileName'):
             basedir = os.path.dirname(self.videoFileName)
             baseVidName = os.path.splitext(os.path.basename(self.videoFileName))[0]
-            suggestedSaveName = os.path.join(basedir, baseVidName + '_annotations.npy')
+            suggestedSaveName = os.path.join(basedir, baseVidName + '_' + dateString + '_annotations.npy')
         else:
-            suggestedSaveName = 'annotations.npy'
-            
-        annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', suggestedSaveName)
-        np.save(str(annotationDataFileSaveName), self.lickStates)
+            suggestedSaveName = dateString + '_annotations.npy'
+        
+        if automaticName:
+            np.save(suggestedSaveName, self.lickStates)
+        else:
+            annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', suggestedSaveName)
+            np.save(str(annotationDataFileSaveName), self.lickStates)
+
+        self.annotationDataSaved = True
+
+    def closeEvent(self, event):
+        if self.vid is not None:
+            self.vid.release()
+
+        if not self.annotationDataSaved:
+            self.saveAnnotationData(automaticName=True)
         
     def resetAnnotationData(self):
         self.lickStates = np.zeros(int(self.totalVidFrames))
