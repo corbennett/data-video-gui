@@ -34,6 +34,8 @@ class lickVideo():
         self.vid = None
         self.lickStates = None
         self.annotationDataFile = None
+        self.lastAnnotatedFrame = None
+        self.videoFileName = None
         self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
         self.mainWidget = QtGui.QWidget()
@@ -57,8 +59,10 @@ class lickVideo():
     
     def getVideoFile(self):
         
+        videoChange = False
         if self.vid is not None:
             self.vid.release()
+            videoChange = True
             
         self.videoFileName = str(QtGui.QFileDialog.getOpenFileName())
         self.vid = cv2.VideoCapture(self.videoFileName)
@@ -70,36 +74,55 @@ class lickVideo():
         self.frameIndex = 0
         self.frameDisplayBox.setText(str(self.frameIndex))
         self.totalFrameCountLabel.setText('/' + str(int(self.totalVidFrames)))
-        
-        if self.annotationDataFile is None:
-            self.resetAnnotationData()
-        else:
-            assert(len(self.lickStates)==self.totalVidFrames)
 
+        if videoChange:        
+            #pop up to ask if you want to reset the annotation data since the movie has changed
+            confirmResetDataMessageBoxReply = QtGui.QMessageBox.question(self.mainWin, 'New Video File', 'Reset Annotation Data?', QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
+            if confirmResetDataMessageBoxReply == QtGui.QMessageBox.Ok:
+                self.resetAnnotationData()
+        else:
+            self.resetAnnotationData()
+
+        assert(len(self.lickStates)==self.totalVidFrames)
+        
+        if self.lastAnnotatedFrame is not None:
+            self.frameIndex = self.lastAnnotatedFrame
+            self.updatePlot()
+        
         self.annotationDataSaved = False
 
     def loadAnnotationData(self):
-        self.annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npy')
-        self.lickStates = np.load(str(self.annotationDataFile))
+        self.annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npz')
+        savedData = np.load(str(self.annotationDataFile))
+
+        self.lickStates = savedData['lickStates']
+        self.lastAnnotatedFrame = int(savedData['lastAnnotatedFrame'])
+        
         if self.vid is not None:
             assert(len(self.lickStates)==self.totalVidFrames)
+            self.frameIndex = self.lastAnnotatedFrame
+            self.updatePlot()
     
     def saveAnnotationData(self, automaticName=False):
         now = datetime.now()
         dateString = now.strftime("%m%d%Y_%H%M%S")
         
-        if hasattr(self, 'videoFileName'):
+        if self.videoFileName is not None:
             basedir = os.path.dirname(self.videoFileName)
             baseVidName = os.path.splitext(os.path.basename(self.videoFileName))[0]
-            suggestedSaveName = os.path.join(basedir, baseVidName + '_' + dateString + '_annotations.npy')
+            annotationDataFileSaveName = os.path.join(basedir, baseVidName + '_' + dateString + '_annotations.npz')
         else:
-            suggestedSaveName = dateString + '_annotations.npy'
+            annotationDataFileSaveName = dateString + '_annotations.npz'
         
-        if automaticName:
-            np.save(suggestedSaveName, self.lickStates)
-        else:
-            annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', suggestedSaveName)
-            np.save(str(annotationDataFileSaveName), self.lickStates)
+        if not automaticName:
+            annotationDataFileSaveName = str(QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', annotationDataFileSaveName))
+
+        # get last annotated frame to reload when opened
+        annoFrames = np.where(self.lickStates>0)[0]
+        lastAnnoFrame = annoFrames[-1] if len(annoFrames)>0 else 0 
+
+        np.savez(annotationDataFileSaveName, lickStates=self.lickStates, lastAnnotatedFrame=lastAnnoFrame, videoFileName=self.videoFileName)
+        print('Saving annotation data to:' +  annotationDataFileSaveName)
 
         self.annotationDataSaved = True
 
@@ -107,11 +130,15 @@ class lickVideo():
         if self.vid is not None:
             self.vid.release()
 
-        if not self.annotationDataSaved:
-            self.saveAnnotationData(automaticName=True)
+        if self.lickStates is not None:
+            saveDataMessageBoxReply = QtGui.QMessageBox.question(self.mainWin, 'Closing', 'Save Annotation Data?', QtGui.QMessageBox.Ok | QtGui.QMessageBox.No)
+            if saveDataMessageBoxReply == QtGui.QMessageBox.Ok:
+                self.saveAnnotationData()
         
     def resetAnnotationData(self):
         self.lickStates = np.zeros(int(self.totalVidFrames))
+        self.lastAnnotatedFrame = None
+        self.setRadioButtonStates()
         
     def createMenuBar(self):
         # create an instance of menu bar
@@ -141,35 +168,35 @@ class lickVideo():
         self.playVideoButton = QtGui.QPushButton('Play')
         self.playVideoButton.setCheckable(True)
         self.playVideoButton.clicked.connect(self.playVideo)
-        self.controlPanelLayout.addWidget(self.playVideoButton, 0, 0)
+        self.controlPanelLayout.addWidget(self.playVideoButton, 0, 0, 1, 1)
         self.playTimer = QtCore.QTimer()
         self.playTimer.setInterval(10)
         self.playTimer.timeout.connect(self.advanceFrame)
         
         frameLabel = QtGui.QLabel("Frame:")
-        self.controlPanelLayout.addWidget(frameLabel, 0, 1)
+        self.controlPanelLayout.addWidget(frameLabel, 0, 1, 1, 1)
         
         self.frameDisplayBox = QtGui.QLineEdit()
         self.frameDisplayBox.editingFinished.connect(self.goToFrame)
-        self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2)
+        self.controlPanelLayout.addWidget(self.frameDisplayBox, 0, 2, 1, 1)
         
         self.totalFrameCountLabel = QtGui.QLabel("/")
-        self.controlPanelLayout.addWidget(self.totalFrameCountLabel, 0, 3)
+        self.controlPanelLayout.addWidget(self.totalFrameCountLabel, 0, 3, 1, 1)
         
         self.lickRadioButton = QtGui.QRadioButton('lick')
         self.lickRadioButton.clicked.connect(self.lickRadioButtonCallback)
         self.lickRadioButton.setToolTip('Shortcut: L')
-        self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4)
+        self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4, 1, 1)
         
         self.contactRadioButton = QtGui.QRadioButton('other contact')
         self.contactRadioButton.clicked.connect(self.contactRadioButtonCallback)
         self.contactRadioButton.setToolTip('Shortcut: C')
-        self.controlPanelLayout.addWidget(self.contactRadioButton, 0, 5)
+        self.controlPanelLayout.addWidget(self.contactRadioButton, 0, 5, 1, 1)
         
         self.noLickRadioButton = QtGui.QRadioButton('no lick')
         self.noLickRadioButton.clicked.connect(self.noLickRadioButtonCallback)
         self.noLickRadioButton.setToolTip('Shortcut: N')
-        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 6)
+        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 6, 1, 1)
 
     def advanceFrame(self):
         self.frameIndex += 1
