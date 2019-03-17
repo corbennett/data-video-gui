@@ -35,6 +35,7 @@ class dataVideo():
         self.lickStates = None
         self.annotationDataFile = None
         self.lastAnnotatedFrame = None
+        self.dataFrameMapping = None
         self.videoFileName = None
         self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
@@ -92,7 +93,7 @@ class dataVideo():
         else:
             self.resetAnnotationData()
 
-        assert(len(self.lickStates)==self.totalVidFrames)
+        #assert(len(self.lickStates)==self.totalVidFrames)
         
         if self.lastAnnotatedFrame is not None:
             self.frameIndex = self.lastAnnotatedFrame
@@ -113,6 +114,10 @@ class dataVideo():
             self.updatePlot()
         
         self.plot1.plot(self.lickStates)
+        
+    def loadDataFrameMapping(self):
+        self.dataFrameMappingFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Data Frame Mapping File', filter='*.npy')
+        self.dataFrameMapping = np.load(str(self.dataFrameMappingFile))
     
     def saveAnnotationData(self, automaticName=False):
         now = datetime.now()
@@ -167,8 +172,12 @@ class dataVideo():
         loadAnnotations_action = QtGui.QAction('&Load Annotation Data', self.mainWin)
         loadAnnotations_action.triggered.connect(self.loadAnnotationData)
     
+        loadDataFrameMapping_action = QtGui.QAction('&Load Data-Frame mapping', self.mainWin)
+        loadDataFrameMapping_action.triggered.connect(self.loadDataFrameMapping)
+
         file_menu.addAction(open_action)
         file_menu.addAction(loadAnnotations_action)
+        file_menu.addAction(loadDataFrameMapping_action)
         file_menu.addAction(saveAnnotations_action)
              
     def createControlPanel(self):
@@ -250,7 +259,16 @@ class dataVideo():
             self.imageItem.setImage(self.frame[:,:,0].T)
             self.frameDisplayBox.setText(str(self.frameIndex))
             self.setRadioButtonStates()
+            if self.annotationDataFile is not None:
+                self.syncVideoAndData()
         
+    def syncVideoAndData(self):
+        if self.dataFrameMapping is None:
+            self.plot1_infLine.setValue(self.frameIndex)
+        else:
+            self.plot1_infLine.setValue(self.dataFrameMapping[self.frameIndex])
+        
+        self.plot1_infLine.sigPositionChangeFinished.emit(self.plot1_infLine)
         
     def setRadioButtonStates(self):
         if self.lickStates is not None:
@@ -286,9 +304,8 @@ class dataVideo():
     def centerPlot1(self):
         xMin, xMax = self.plot1.viewRange()[0]
         halfXRange = (xMax-xMin)/2
-        linePos = self.plot1_infLine.value()
-        
-        self.plot1.setXRange(linePos-halfXRange, linePos+halfXRange)
+        linePos = self.plot1_infLine.value()        
+        self.plot1.setXRange(linePos-halfXRange, linePos+halfXRange, padding=0)
 
         
 if __name__ == '__main__':
