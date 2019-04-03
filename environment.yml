@@ -1,4 +1,4 @@
-name: lickAnnotation2
+name: lickAnnotation
 channels:
   - https://conda.binstar.org/menpo
   - defaults
