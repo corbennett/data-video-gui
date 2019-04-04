@@ -64,7 +64,7 @@ class lickVideo():
             self.vid.release()
             videoChange = True
             
-        self.videoFileName = str(QtGui.QFileDialog.getOpenFileName())
+        self.videoFileName = str(QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Video File', filter='*.avi'))
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
         self.updatePlot()
