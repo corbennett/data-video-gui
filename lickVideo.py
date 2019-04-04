@@ -75,7 +75,7 @@ class lickVideo():
         self.frameDisplayBox.setText(str(self.frameIndex))
         self.totalFrameCountLabel.setText('/' + str(int(self.totalVidFrames)))
 
-        if videoChange:        
+        if videoChange or self.annotationDataFile is not None:        
             #pop up to ask if you want to reset the annotation data since the movie has changed
             confirmResetDataMessageBoxReply = QtGui.QMessageBox.question(self.mainWin, 'New Video File', 'Reset Annotation Data?', QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
             if confirmResetDataMessageBoxReply == QtGui.QMessageBox.Ok:
