@@ -15,6 +15,7 @@ Requires conda. Following instructions for Windows (OS should work with minor mo
 4) This creates a python 2.7 environment called 'lickAnnotation'. Activate this environment and run the gui:
     
     activate lickAnnotation
+    
     python lickVideo.py
     
 ## Use
