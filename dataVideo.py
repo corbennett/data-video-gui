@@ -17,6 +17,7 @@ from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 import cv2
 import os
+import readIgor
 from datetime import datetime
 
 def start():
@@ -36,6 +37,7 @@ class dataVideo():
         self.annotationDataFile = None
         self.lastAnnotatedFrame = None
         self.dataFrameMapping = None
+        self.data=None
         self.videoFileName = None
         self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
@@ -57,6 +59,7 @@ class dataVideo():
         
         self.plotLayout = pg.GraphicsLayoutWidget()
         self.plot1 = self.plotLayout.addPlot(0,0)
+        self.plot1.setClipToView(True)
         self.plot1_infLine = pg.InfiniteLine(movable=True)
         self.plot1_infLine.sigPositionChangeFinished.connect(self.centerPlot1)
         self.plot1.addItem(self.plot1_infLine)
@@ -113,12 +116,17 @@ class dataVideo():
             self.frameIndex = self.lastAnnotatedFrame
             self.updatePlot()
         
-        self.plot1.plot(self.lickStates)
+        #self.plot1.plot(self.lickStates)
         
     def loadDataFrameMapping(self):
         self.dataFrameMappingFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Data Frame Mapping File', filter='*.npy')
         self.dataFrameMapping = np.load(str(self.dataFrameMappingFile))
     
+    def loadIgorData(self):
+        self.dataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Igor Data File')
+        self.data, self.dataTime = readIgor.getData(self.dataFile)
+        self.plot1DataItem = self.plot1.plot(self.data[:, :, 0].flatten())
+        
     def saveAnnotationData(self, automaticName=False):
         now = datetime.now()
         dateString = now.strftime("%m%d%Y_%H%M%S")
@@ -171,6 +179,9 @@ class dataVideo():
         
         loadAnnotations_action = QtGui.QAction('&Load Annotation Data', self.mainWin)
         loadAnnotations_action.triggered.connect(self.loadAnnotationData)
+        
+        loadIgor_action = QtGui.QAction('&Load Igor Data', self.mainWin)
+        loadIgor_action.triggered.connect(self.loadIgorData)
     
         loadDataFrameMapping_action = QtGui.QAction('&Load Data-Frame mapping', self.mainWin)
         loadDataFrameMapping_action.triggered.connect(self.loadDataFrameMapping)
@@ -179,6 +190,7 @@ class dataVideo():
         file_menu.addAction(loadAnnotations_action)
         file_menu.addAction(loadDataFrameMapping_action)
         file_menu.addAction(saveAnnotations_action)
+        file_menu.addAction(loadIgor_action)
              
     def createControlPanel(self):
         #make layout for gui controls and add to main layout
@@ -259,7 +271,7 @@ class dataVideo():
             self.imageItem.setImage(self.frame[:,:,0].T)
             self.frameDisplayBox.setText(str(self.frameIndex))
             self.setRadioButtonStates()
-            if self.annotationDataFile is not None:
+            if self.data is not None:
                 self.syncVideoAndData()
         
     def syncVideoAndData(self):
@@ -304,8 +316,19 @@ class dataVideo():
     def centerPlot1(self):
         xMin, xMax = self.plot1.viewRange()[0]
         halfXRange = (xMax-xMin)/2
-        linePos = self.plot1_infLine.value()        
+        linePos = self.plot1_infLine.value()
+        #self.plot1.plot(self.data[:, :, 0].flatten()[int(linePos-halfXRange):int(linePos+halfXRange)])        
         self.plot1.setXRange(linePos-halfXRange, linePos+halfXRange, padding=0)
+        #xs = np.arange(int(linePos-halfXRange), int(linePos+halfXRange))
+        #ys = self.data[:, :, 0].flatten()[int(linePos-halfXRange):int(linePos+halfXRange)]
+
+        #self.plot1DataItem.setData(x=xs, y=ys)
+        #self.plot1DataItem.clipToView=True
+        
+        closestFrame = np.searchsorted(self.dataFrameMapping, linePos)
+        if abs(self.frameIndex-closestFrame)>1:
+            self.frameIndex = closestFrame
+            self.updatePlot()
 
         
 if __name__ == '__main__':
