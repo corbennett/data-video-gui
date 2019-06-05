@@ -64,6 +64,7 @@ class dataVideo():
         self.plot1_infLine.sigPositionChangeFinished.connect(self.centerPlot1)
         self.plot1.addItem(self.plot1_infLine)
         self.plot2 = self.plotLayout.addPlot(1,0)
+        self.plot2.setXLink(self.plot1)
         self.mainLayout.addWidget(self.plotLayout, 1, 1, 1, 2)
             
         self.mainWin.show()
@@ -125,8 +126,32 @@ class dataVideo():
     def loadIgorData(self):
         self.dataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Igor Data File')
         self.data, self.dataTime = readIgor.getData(self.dataFile)
-        self.plot1DataItem = self.plot1.plot(self.data[:, :, 0].flatten())
         
+        text, ok = QtGui.QInputDialog.getText(self.mainWin,'Select channels for top plot', 
+            'Channels (comma sep):')
+        
+        if ok:
+            self.resetPlot('plot1DataItems')
+            self.plot1DataChannels = [int(a) for a in text.split(',')]
+            self.plot1DataItems = [self.plot1.plot(self.data[:, :, c].flatten()) for c in self.plot1DataChannels]
+            self.plot1.autoRange()
+            
+        text, ok = QtGui.QInputDialog.getText(self.mainWin, 'Select ball channels', 
+            'Channels (comma sep):')
+        
+        if ok:
+            self.resetPlot('plot2DataItems')
+            self.plot1DataChannels = [int(a) for a in text.split(',')]
+            speed = readIgor.readBall(self.data, self.plot1DataChannels, sampleRate=int(1000/np.mean(np.diff(self.dataTime))))
+            
+            self.plot2DataItems = self.plot2.plot(speed.flatten())
+            self.plot2.autoRange()
+    
+    def resetPlot(self, plotDataItemName):
+        if hasattr(self, plotDataItemName):
+            for pdi in self[plotDataItemName]:
+                pdi.clear()
+                
     def saveAnnotationData(self, automaticName=False):
         now = datetime.now()
         dateString = now.strftime("%m%d%Y_%H%M%S")
@@ -169,6 +194,7 @@ class dataVideo():
         menubar = self.mainWin.menuBar()
         # add file menu and file menu actions
         file_menu = menubar.addMenu('&File')
+        load_menu = file_menu.addMenu('&Load')
         
         # file menu actions
         open_action = QtGui.QAction('&Open Video', self.mainWin)
@@ -187,10 +213,10 @@ class dataVideo():
         loadDataFrameMapping_action.triggered.connect(self.loadDataFrameMapping)
 
         file_menu.addAction(open_action)
-        file_menu.addAction(loadAnnotations_action)
-        file_menu.addAction(loadDataFrameMapping_action)
         file_menu.addAction(saveAnnotations_action)
-        file_menu.addAction(loadIgor_action)
+        load_menu.addAction(loadAnnotations_action)
+        load_menu.addAction(loadDataFrameMapping_action)
+        load_menu.addAction(loadIgor_action)
              
     def createControlPanel(self):
         #make layout for gui controls and add to main layout
@@ -317,14 +343,8 @@ class dataVideo():
         xMin, xMax = self.plot1.viewRange()[0]
         halfXRange = (xMax-xMin)/2
         linePos = self.plot1_infLine.value()
-        #self.plot1.plot(self.data[:, :, 0].flatten()[int(linePos-halfXRange):int(linePos+halfXRange)])        
         self.plot1.setXRange(linePos-halfXRange, linePos+halfXRange, padding=0)
-        #xs = np.arange(int(linePos-halfXRange), int(linePos+halfXRange))
-        #ys = self.data[:, :, 0].flatten()[int(linePos-halfXRange):int(linePos+halfXRange)]
 
-        #self.plot1DataItem.setData(x=xs, y=ys)
-        #self.plot1DataItem.clipToView=True
-        
         closestFrame = np.searchsorted(self.dataFrameMapping, linePos)
         if abs(self.frameIndex-closestFrame)>1:
             self.frameIndex = closestFrame
