@@ -20,7 +20,7 @@ import os
 from datetime import datetime
 
 def start():
-    QtGui.QApplication.setGraphicsSystem("raster")
+    #QtGui.QApplication.setGraphicsSystem("raster")
     app = QtGui.QApplication.instance()
     if app is None:
         app = QtGui.QApplication([])
@@ -63,13 +63,19 @@ class lickVideo():
         if self.vid is not None:
             self.vid.release()
             videoChange = True
-            
-        self.videoFileName = str(QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Video File', filter='*.avi'))
+        
+        videoFileName = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Video File', filter='*.avi')
+        if isinstance(videoFileName, tuple):
+            videoFileName = str(videoFileName[0])
+
+        self.videoFileName = videoFileName
+        print(self.videoFileName)
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
         self.updatePlot()
 
         self.totalVidFrames = self.vid.get(cv2.CAP_PROP_FRAME_COUNT)
+        print(self.totalVidFrames)
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
         self.frameIndex = 0
         self.frameDisplayBox.setText(str(self.frameIndex))
@@ -92,7 +98,12 @@ class lickVideo():
         self.annotationDataSaved = False
 
     def loadAnnotationData(self):
-        self.annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npz')
+
+        annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npz')
+        if isinstance(annotationDataFile, tuple):
+            annotationDataFile = str(annotationDataFile[0])
+        self.annotationDataFile = annotationDataFile
+
         savedData = np.load(str(self.annotationDataFile))
 
         self.lickStates = savedData['lickStates']
@@ -115,8 +126,10 @@ class lickVideo():
             annotationDataFileSaveName = dateString + '_annotations.npz'
         
         if not automaticName:
-            annotationDataFileSaveName = str(QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', annotationDataFileSaveName))
-
+            annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', annotationDataFileSaveName)
+            if isinstance(annotationDataFileSaveName, tuple):
+                annotationDataFileSaveName = str(annotationDataFileSaveName[0])
+            
         # get last annotated frame to reload when opened
         annoFrames = np.where(self.lickStates>0)[0]
         lastAnnoFrame = annoFrames[-1] if len(annoFrames)>0 else 0 
