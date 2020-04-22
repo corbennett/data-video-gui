@@ -188,15 +188,25 @@ class lickVideo():
         self.lickRadioButton.setToolTip('Shortcut: L')
         self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4, 1, 1)
         
-        self.contactRadioButton = QtGui.QRadioButton('other contact')
-        self.contactRadioButton.clicked.connect(self.contactRadioButtonCallback)
-        self.contactRadioButton.setToolTip('Shortcut: C')
-        self.controlPanelLayout.addWidget(self.contactRadioButton, 0, 5, 1, 1)
+        self.runRadioButton = QtGui.QRadioButton('run')
+        self.runRadioButton.clicked.connect(self.runRadioButtonCallback)
+        self.runRadioButton.setToolTip('Shortcut: R')
+        self.controlPanelLayout.addWidget(self.runRadioButton, 0, 5, 1, 1)
         
-        self.noLickRadioButton = QtGui.QRadioButton('no lick')
+        self.groomRadioButton = QtGui.QRadioButton('groom')
+        self.groomRadioButton.clicked.connect(self.groomRadioButtonCallback)
+        self.groomRadioButton.setToolTip('Shortcut: G')
+        self.controlPanelLayout.addWidget(self.groomRadioButton, 0, 6, 1, 1)
+        
+        self.missRadioButton = QtGui.QRadioButton('miss')
+        self.missRadioButton.clicked.connect(self.missRadioButtonCallback)
+        self.missRadioButton.setToolTip('Shortcut: M')
+        self.controlPanelLayout.addWidget(self.missRadioButton, 0, 7, 1, 1)
+        
+        self.noLickRadioButton = QtGui.QRadioButton('none')
         self.noLickRadioButton.clicked.connect(self.noLickRadioButtonCallback)
         self.noLickRadioButton.setToolTip('Shortcut: N')
-        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 6, 1, 1)
+        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 8, 1, 1)
 
     def advanceFrame(self):
         self.frameIndex += 1
@@ -244,9 +254,12 @@ class lickVideo():
     def setRadioButtonStates(self):
         if self.lickStates is not None:
             thisState = self.lickStates[self.frameIndex]
-            if thisState > 1: self.contactRadioButton.click()
-            elif thisState < 1: self.noLickRadioButton.click()
-            else: self.lickRadioButton.click()
+            if thisState==0: self.noLickRadioButton.click()
+            elif thisState==1: self.lickRadioButton.click()
+            elif thisState==2: self.runRadioButton.click()
+            elif thisState==3: self.groomRadioButton.click()
+            elif thisState==4: self.missRadioButton.click()
+        
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
@@ -254,8 +267,14 @@ class lickVideo():
     def noLickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 0
 
-    def contactRadioButtonCallback(self):
+    def runRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 2
+        
+    def groomRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 3
+        
+    def missRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 4
   
     def keyPressCallback(self, event):
         
@@ -267,8 +286,12 @@ class lickVideo():
             self.lickRadioButton.click()
         if event.key() == QtCore.Qt.Key_N:
             self.noLickRadioButton.click()
-        if event.key() == QtCore.Qt.Key_C:
-            self.contactRadioButton.click()
+        if event.key() == QtCore.Qt.Key_R:
+            self.runRadioButton.click()
+        if event.key() == QtCore.Qt.Key_G:
+            self.groomRadioButton.click()
+        if event.key() == QtCore.Qt.Key_M:
+            self.missRadioButton.click()
         if event.key() == QtCore.Qt.Key_Space:
             self.playVideoButton.click()
             
