@@ -68,7 +68,7 @@ class lickVideo():
         if isinstance(videoFileName, tuple):
             videoFileName = str(videoFileName[0])
 
-        self.videoFileName = videoFileName
+        self.videoFileName = str(videoFileName)
         print(self.videoFileName)
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
