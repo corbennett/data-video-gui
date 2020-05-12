@@ -356,7 +356,8 @@ class lickVideo():
             self.plot1_infLine.setPen('y')
         xMin, xMax = self.plot1.viewRange()[0]
         plotrange = xMax-xMin
-        if self.frameIndex>0.9*xMax:
+        current_position_in_plot = self.frameIndex - xMin
+        if current_position_in_plot>0.9*plotrange:
             self.plot1.setXRange(self.frameIndex+0.1*plotrange, self.frameIndex - 0.9*plotrange, padding=0)
 
     
