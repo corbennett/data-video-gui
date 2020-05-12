@@ -94,6 +94,7 @@ class lickVideo():
         
         self.plot1.setXRange(0, 18000, padding=0)
         self.plot1.setLimits(xMin=0, xMax=self.totalVidFrames, yMin=0, yMax=2)
+        self.plot1_infLine.setBounds((0, self.totalVidFrames))
         
         print(self.totalVidFrames)
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
@@ -167,6 +168,7 @@ class lickVideo():
             annotationDataFileSaveName = QtGui.QFileDialog.getSaveFileName(self.mainWin, 'Save Annotation Data', annotationDataFileSaveName)
             if isinstance(annotationDataFileSaveName, tuple):
                 annotationDataFileSaveName = str(annotationDataFileSaveName[0])
+            annotationDataFileSaveName = str(annotationDataFileSaveName)
             
         # get last annotated frame to reload when opened
         annoFrames = np.where(self.lickStates>0)[0]
@@ -193,9 +195,11 @@ class lickVideo():
     
     def resetPlot(self, plotDataItemName):
         if hasattr(self, plotDataItemName):
-            for pdi in self[plotDataItemName]:
-                pdi.clear()   
-    
+            pdi = getattr(self, plotDataItemName)
+            pdi.clear()
+#            for pdi in getattr(self, plotDataItemName):
+#                pdi.clear()   
+#    
     def createMenuBar(self):
         # create an instance of menu bar
         menubar = self.mainWin.menuBar()
@@ -243,30 +247,45 @@ class lickVideo():
         self.totalFrameCountLabel = QtGui.QLabel("/")
         self.controlPanelLayout.addWidget(self.totalFrameCountLabel, 0, 3, 1, 1)
         
-        self.lickRadioButton = QtGui.QRadioButton('lick')
+        self.lickRadioButton = QtGui.QRadioButton('tongue')
         self.lickRadioButton.clicked.connect(self.lickRadioButtonCallback)
-        self.lickRadioButton.setToolTip('Shortcut: L')
+        self.lickRadioButton.setToolTip('Shortcut: T, use when togue touches spout')
         self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4, 1, 1)
         
-        self.runRadioButton = QtGui.QRadioButton('run')
+        self.runRadioButton = QtGui.QRadioButton('paw')
         self.runRadioButton.clicked.connect(self.runRadioButtonCallback)
-        self.runRadioButton.setToolTip('Shortcut: R')
+        self.runRadioButton.setToolTip('Shortcut: P, use when paw hits spout during running')
         self.controlPanelLayout.addWidget(self.runRadioButton, 0, 5, 1, 1)
         
         self.groomRadioButton = QtGui.QRadioButton('groom')
         self.groomRadioButton.clicked.connect(self.groomRadioButtonCallback)
-        self.groomRadioButton.setToolTip('Shortcut: G')
+        self.groomRadioButton.setToolTip('Shortcut: G, use when paws hit spout during grooming')
         self.controlPanelLayout.addWidget(self.groomRadioButton, 0, 6, 1, 1)
         
-        self.missRadioButton = QtGui.QRadioButton('miss')
-        self.missRadioButton.clicked.connect(self.missRadioButtonCallback)
-        self.missRadioButton.setToolTip('Shortcut: M')
-        self.controlPanelLayout.addWidget(self.missRadioButton, 0, 7, 1, 1)
+        self.chinRadioButton = QtGui.QRadioButton('chin')
+        self.chinRadioButton.clicked.connect(self.chinRadioButtonCallback)
+        self.chinRadioButton.setToolTip('Shortcut: C, use when chin touches spout')
+        self.controlPanelLayout.addWidget(self.chinRadioButton, 0, 7, 1, 1)
         
-        self.noLickRadioButton = QtGui.QRadioButton('none')
+        self.missRadioButton = QtGui.QRadioButton('air lick')
+        self.missRadioButton.clicked.connect(self.missRadioButtonCallback)
+        self.missRadioButton.setToolTip('Shortcut: A, use when mouse licks but does not touch spout')
+        self.controlPanelLayout.addWidget(self.missRadioButton, 1, 4, 1, 1)
+        
+        self.noLickRadioButton = QtGui.QRadioButton('no label')
         self.noLickRadioButton.clicked.connect(self.noLickRadioButtonCallback)
-        self.noLickRadioButton.setToolTip('Shortcut: N')
-        self.controlPanelLayout.addWidget(self.noLickRadioButton, 0, 8, 1, 1)
+        self.noLickRadioButton.setToolTip('Shortcut: 0, default state, no annotation')
+        self.controlPanelLayout.addWidget(self.noLickRadioButton, 1, 7, 1, 1)
+        
+        self.airgroomRadioButton = QtGui.QRadioButton('air groom')
+        self.airgroomRadioButton.clicked.connect(self.airgroomRadioButtonCallback)
+        self.airgroomRadioButton.setToolTip('Shortcut: F, use when mouse is grooming but not contacting spout')
+        self.controlPanelLayout.addWidget(self.airgroomRadioButton, 1, 5, 1, 1)
+        
+        self.nocontactRadioButton = QtGui.QRadioButton('no contact')
+        self.nocontactRadioButton.clicked.connect(self.nocontactRadioButtonCallback)
+        self.nocontactRadioButton.setToolTip('Shortcut: N, use when mouse is not contacting spout and no other labels apply')
+        self.controlPanelLayout.addWidget(self.nocontactRadioButton, 1, 6, 1, 1)
 
     def advanceFrame(self, toNextDetectorFrame=False):
         
@@ -349,7 +368,9 @@ class lickVideo():
             elif thisState==2: self.runRadioButton.click()
             elif thisState==3: self.groomRadioButton.click()
             elif thisState==4: self.missRadioButton.click()
-        
+            elif thisState==5: self.chinRadioButton.click()
+            elif thisState==6: self.airgroomRadioButton.click()
+            elif thisState==7: self.nocontactRadioButton.click()
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
@@ -365,6 +386,15 @@ class lickVideo():
         
     def missRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 4
+        
+    def chinRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 5
+    
+    def airgroomRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 6
+    
+    def nocontactRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 7
   
     def keyPressCallback(self, event):
         
@@ -372,16 +402,22 @@ class lickVideo():
             self.backFrame()
         if event.key() == QtCore.Qt.Key_Right:
             self.advanceFrame()
-        if event.key() == QtCore.Qt.Key_L:
+        if event.key() == QtCore.Qt.Key_T:
             self.lickRadioButton.click()
-        if event.key() == QtCore.Qt.Key_N:
+        if event.key() == QtCore.Qt.Key_0:
             self.noLickRadioButton.click()
-        if event.key() == QtCore.Qt.Key_R:
+        if event.key() == QtCore.Qt.Key_P:
             self.runRadioButton.click()
         if event.key() == QtCore.Qt.Key_G:
             self.groomRadioButton.click()
-        if event.key() == QtCore.Qt.Key_M:
+        if event.key() == QtCore.Qt.Key_A:
             self.missRadioButton.click()
+        if event.key() == QtCore.Qt.Key_C:
+            self.chinRadioButton.click()
+        if event.key() == QtCore.Qt.Key_F:
+            self.airgroomRadioButton.click()
+        if event.key() == QtCore.Qt.Key_N:
+            self.nocontactRadioButton.click()
         if event.key() == QtCore.Qt.Key_Space:
             self.playVideoButton.click()
         if event.key() == QtCore.Qt.Key_Comma:
