@@ -99,7 +99,6 @@ class lickVideo():
         self.plot1.setLimits(xMin=0, xMax=self.totalVidFrames, yMin=0, yMax=2)
         self.plot1_infLine.setBounds((0, self.totalVidFrames))
         
-        print(self.totalVidFrames)
         self.frameRate = self.vid.get(cv2.CAP_PROP_FPS)
         self.frameIndex = 0
         self.frameDisplayBox.setText(str(self.frameIndex))
@@ -221,9 +220,7 @@ class lickVideo():
         if hasattr(self, plotDataItemName):
             pdi = getattr(self, plotDataItemName)
             pdi.clear()
-#            for pdi in getattr(self, plotDataItemName):
-#                pdi.clear()   
-#    
+    
     def createMenuBar(self):
         # create an instance of menu bar
         menubar = self.mainWin.menuBar()
@@ -273,43 +270,59 @@ class lickVideo():
         
         self.lickRadioButton = QtGui.QRadioButton('tongue')
         self.lickRadioButton.clicked.connect(self.lickRadioButtonCallback)
-        self.lickRadioButton.setToolTip('Shortcut: T, use when togue touches spout')
+        self.lickRadioButton.setToolTip('Shortcut: T, use when tongue touches spout')
         self.controlPanelLayout.addWidget(self.lickRadioButton, 0, 4, 1, 1)
+        self.lick_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.lick_counter_label, 0, 5, 1, 1)
         
         self.runRadioButton = QtGui.QRadioButton('paw')
         self.runRadioButton.clicked.connect(self.runRadioButtonCallback)
         self.runRadioButton.setToolTip('Shortcut: P, use when paw hits spout during running')
-        self.controlPanelLayout.addWidget(self.runRadioButton, 0, 5, 1, 1)
+        self.controlPanelLayout.addWidget(self.runRadioButton, 0, 6, 1, 1)
+        self.run_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.run_counter_label, 0, 7, 1, 1)
         
         self.groomRadioButton = QtGui.QRadioButton('groom')
         self.groomRadioButton.clicked.connect(self.groomRadioButtonCallback)
-        self.groomRadioButton.setToolTip('Shortcut: G, use when paws hit spout during grooming')
-        self.controlPanelLayout.addWidget(self.groomRadioButton, 0, 6, 1, 1)
+        self.groomRadioButton.setToolTip('Shortcut: G, use when paw hits spout during grooming')
+        self.controlPanelLayout.addWidget(self.groomRadioButton, 0, 8, 1, 1)
+        self.groom_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.groom_counter_label, 0, 9, 1, 1)
         
         self.chinRadioButton = QtGui.QRadioButton('chin')
         self.chinRadioButton.clicked.connect(self.chinRadioButtonCallback)
         self.chinRadioButton.setToolTip('Shortcut: C, use when chin touches spout')
-        self.controlPanelLayout.addWidget(self.chinRadioButton, 0, 7, 1, 1)
+        self.controlPanelLayout.addWidget(self.chinRadioButton, 0, 10, 1, 1)
+        self.chin_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.chin_counter_label, 0, 11, 1, 1)
         
         self.missRadioButton = QtGui.QRadioButton('air lick')
         self.missRadioButton.clicked.connect(self.missRadioButtonCallback)
         self.missRadioButton.setToolTip('Shortcut: A, use when mouse licks but does not touch spout')
         self.controlPanelLayout.addWidget(self.missRadioButton, 1, 4, 1, 1)
+        self.miss_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.miss_counter_label, 1, 5, 1, 1)
         
         self.noLickRadioButton = QtGui.QRadioButton('no label')
         self.noLickRadioButton.clicked.connect(self.noLickRadioButtonCallback)
         self.noLickRadioButton.setToolTip('Shortcut: 0, default state, no annotation')
-        self.controlPanelLayout.addWidget(self.noLickRadioButton, 1, 7, 1, 1)
+        self.controlPanelLayout.addWidget(self.noLickRadioButton, 1, 10, 1, 1)
+        self.noLick_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.noLick_counter_label, 1, 11, 1, 1)
         
         self.airgroomRadioButton = QtGui.QRadioButton('air groom')
         self.airgroomRadioButton.clicked.connect(self.airgroomRadioButtonCallback)
         self.airgroomRadioButton.setToolTip('Shortcut: F, use when mouse is grooming but not contacting spout')
-        self.controlPanelLayout.addWidget(self.airgroomRadioButton, 1, 5, 1, 1)
+        self.controlPanelLayout.addWidget(self.airgroomRadioButton, 1, 6, 1, 1)
+        self.airgroom_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.airgroom_counter_label, 1, 7, 1, 1)
         
         self.nocontactRadioButton = QtGui.QRadioButton('no contact')
         self.nocontactRadioButton.clicked.connect(self.nocontactRadioButtonCallback)
         self.nocontactRadioButton.setToolTip('Shortcut: N, use when mouse is not contacting spout and no other labels apply')
-        self.controlPanelLayout.addWidget(self.nocontactRadioButton, 1, 6, 1, 1)
+        self.controlPanelLayout.addWidget(self.nocontactRadioButton, 1, 8, 1, 1)
+        self.nocontact_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.nocontact_counter_label, 1, 9, 1, 1)
 
     def advanceFrame(self, toNextDetectorFrame=False):
         
@@ -399,27 +412,45 @@ class lickVideo():
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
-    
+        self.reset_counters()
+        
     def noLickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 0
+        self.reset_counters()
 
     def runRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 2
+        self.reset_counters()
         
     def groomRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 3
+        self.reset_counters()
         
     def missRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 4
+        self.reset_counters()
         
     def chinRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 5
+        self.reset_counters()
     
     def airgroomRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 6
+        self.reset_counters()
     
     def nocontactRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 7
+        self.reset_counters()
+    
+    def reset_counters(self):
+        self.lick_counter_label.setText("(" + str(np.sum(self.lickStates==1)) + ")")
+        self.noLick_counter_label.setText("(" + str(np.sum(self.lickStates==0)) + ")")
+        self.run_counter_label.setText("(" + str(np.sum(self.lickStates==2)) + ")")
+        self.groom_counter_label.setText("(" + str(np.sum(self.lickStates==3)) + ")")
+        self.miss_counter_label.setText("(" + str(np.sum(self.lickStates==4)) + ")")
+        self.chin_counter_label.setText("(" + str(np.sum(self.lickStates==5)) + ")")
+        self.airgroom_counter_label.setText("(" + str(np.sum(self.lickStates==6)) + ")")
+        self.nocontact_counter_label.setText("(" + str(np.sum(self.lickStates==7)) + ")")
   
     def keyPressCallback(self, event):
         
