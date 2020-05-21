@@ -42,7 +42,7 @@ class lickVideo():
         self.data_directory = None
         self.key_shortcuts = {}
         
-        self.config_path = r"C:\Users\svc_ccg\Documents\GitHub\data-video-gui"
+        self.config_path = os.path.dirname(os.path.realpath(__file__))
         self.load_config(default=True)
         
         self.sync_lick_frames = []
@@ -136,7 +136,8 @@ class lickVideo():
         if configFile == '' or not os.path.exists(configFile):
             print('config file does not exist: ' + configFile)
             return
-            
+        
+        print('loading config file: ' + configFile)
         with open(configFile) as file:
             self.key_shortcuts = json.load(file)
         
