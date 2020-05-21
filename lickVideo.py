@@ -19,6 +19,7 @@ import cv2
 import os
 from datetime import datetime
 from sync_dataset import Dataset
+import json
 
 
 def start():
@@ -39,6 +40,11 @@ class lickVideo():
         self.lastAnnotatedFrame = None
         self.videoFileName = None
         self.data_directory = None
+        self.key_shortcuts = {}
+        
+        self.config_path = r"C:\Users\svc_ccg\Documents\GitHub\data-video-gui"
+        self.load_config(default=True)
+        
         self.sync_lick_frames = []
         self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
@@ -46,7 +52,6 @@ class lickVideo():
         self.mainWin.setCentralWidget(self.mainWidget)
         self.mainWin.closeEvent = self.closeEvent
         self.mainLayout = QtGui.QGridLayout()
-        
         
         self.createMenuBar()
         self.createControlPanel()
@@ -119,7 +124,22 @@ class lickVideo():
             self.updatePlot()
         
         self.annotationDataSaved = False
-
+    
+    def load_config(self, default=False):
+        
+        if default:
+            configFile = os.path.join(self.config_path, 'shortcuts.json')
+        
+        else:
+            configFile = self.get_file('Load Config', '*.json')
+            
+        if configFile == '' or not os.path.exists(configFile):
+            print('config file does not exist: ' + configFile)
+            return
+            
+        with open(configFile) as file:
+            self.key_shortcuts = json.load(file)
+        
     def loadAnnotationData(self):
 
         annotationDataFile = self.get_file('Load Annotation Data', '*.npz')
@@ -454,31 +474,31 @@ class lickVideo():
   
     def keyPressCallback(self, event):
         
-        if event.key() == QtCore.Qt.Key_Left:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('backFrame', 'Key_Left')]:
             self.backFrame()
-        if event.key() == QtCore.Qt.Key_Right:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('advanceFrame', 'Key_Right')]:
             self.advanceFrame()
-        if event.key() == QtCore.Qt.Key_T:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('tongue', 'Key_T')]:
             self.lickRadioButton.click()
-        if event.key() == QtCore.Qt.Key_0:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('no_label', 'Key_0')]:
             self.noLickRadioButton.click()
-        if event.key() == QtCore.Qt.Key_P:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('paw', 'Key_P')]:
             self.runRadioButton.click()
-        if event.key() == QtCore.Qt.Key_G:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('groom', 'Key_G')]:
             self.groomRadioButton.click()
-        if event.key() == QtCore.Qt.Key_A:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('air_lick', 'Key_A')]:
             self.missRadioButton.click()
-        if event.key() == QtCore.Qt.Key_C:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('chin', 'Key_C')]:
             self.chinRadioButton.click()
-        if event.key() == QtCore.Qt.Key_F:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('air_groom', 'Key_F')]:
             self.airgroomRadioButton.click()
-        if event.key() == QtCore.Qt.Key_N:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('no_contact', 'Key_N')]:
             self.nocontactRadioButton.click()
-        if event.key() == QtCore.Qt.Key_Space:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('play', 'Key_Space')]:
             self.playVideoButton.click()
-        if event.key() == QtCore.Qt.Key_Comma:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('last_detector_frame', 'Key_Comma')]:
             self.backFrame(toLastDetectorFrame=True)
-        if event.key() == QtCore.Qt.Key_Period:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('next_detector_frame', 'Key_Period')]:
             self.advanceFrame(toNextDetectorFrame=True)
             
             

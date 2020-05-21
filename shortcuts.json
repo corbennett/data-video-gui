@@ -1,0 +1,15 @@
+{
+  "backFrame": "Key_Left",
+  "advanceFrame": "Key_Right",
+  "play": "Key_Space",
+  "next_detector_frame": "Key_Up",
+  "last_detector_frame": "Key_Down",
+  "tongue": "Key_T",
+  "no_label": "Key_0",
+  "paw": "Key_P",
+  "groom": "Key_G",
+  "chin": "Key_C",
+  "air_lick": "Key_A",
+  "air_groom": "Key_F",
+  "no_contact": "Key_N"
+}
