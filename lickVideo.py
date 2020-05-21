@@ -83,8 +83,12 @@ class lickVideo():
         videoFileName = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Video File', filter='*.avi')
         if isinstance(videoFileName, tuple):
             videoFileName = str(videoFileName[0])
-
+        
+        if str(videoFileName)=='':
+            return
+        
         self.videoFileName = str(videoFileName)
+        
         print(self.videoFileName)
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
@@ -123,6 +127,10 @@ class lickVideo():
         annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npz')
         if isinstance(annotationDataFile, tuple):
             annotationDataFile = str(annotationDataFile[0])
+        
+        if str(annotationDataFile)=='':
+            return
+        
         self.annotationDataFile = annotationDataFile
 
         savedData = np.load(str(self.annotationDataFile))
@@ -140,6 +148,10 @@ class lickVideo():
         syncFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Sync Data', filter='*.h5; *.sync')
         if isinstance(syncFile, tuple):
             syncFile = str(syncFile[0])
+        
+        if str(syncFile)=='':
+            return
+        
         self.syncFile = str(syncFile)
 
         syncDataset = Dataset(self.syncFile)
