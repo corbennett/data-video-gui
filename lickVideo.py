@@ -38,6 +38,7 @@ class lickVideo():
         self.annotationDataFile = None
         self.lastAnnotatedFrame = None
         self.videoFileName = None
+        self.data_directory = None
         self.sync_lick_frames = []
         self.frameIndex = 0
         self.mainWin = QtGui.QMainWindow()
@@ -80,16 +81,14 @@ class lickVideo():
             self.vid.release()
             videoChange = True
         
-        videoFileName = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Video File', filter='*.avi')
-        if isinstance(videoFileName, tuple):
-            videoFileName = str(videoFileName[0])
-        
-        if str(videoFileName)=='':
+        videoFileName = self.get_file('Load Video File', '*.avi')
+
+        if videoFileName=='':
             return
         
-        self.videoFileName = str(videoFileName)
+        self.videoFileName = videoFileName 
+        self.data_directory = os.path.dirname(self.videoFileName)
         
-        print(self.videoFileName)
         self.vid = cv2.VideoCapture(self.videoFileName)
         _, self.frame = self.vid.read()
         self.updatePlot()
@@ -124,16 +123,14 @@ class lickVideo():
 
     def loadAnnotationData(self):
 
-        annotationDataFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Annotation Data', filter='*.npz')
-        if isinstance(annotationDataFile, tuple):
-            annotationDataFile = str(annotationDataFile[0])
+        annotationDataFile = self.get_file('Load Annotation Data', '*.npz')
         
-        if str(annotationDataFile)=='':
+        if annotationDataFile =='':
             return
         
         self.annotationDataFile = annotationDataFile
 
-        savedData = np.load(str(self.annotationDataFile))
+        savedData = np.load(self.annotationDataFile)
 
         self.lickStates = savedData['lickStates']
         self.lastAnnotatedFrame = int(savedData['lastAnnotatedFrame'])
@@ -145,14 +142,13 @@ class lickVideo():
             
     def loadSyncFile(self):
         self.resetPlot('syncDataItems')
-        syncFile = QtGui.QFileDialog.getOpenFileName(self.mainWin, 'Load Sync Data', filter='*.h5; *.sync')
-        if isinstance(syncFile, tuple):
-            syncFile = str(syncFile[0])
         
-        if str(syncFile)=='':
+        syncFile = self.get_file('Load Sync Data', '*.h5; *.sync')
+        
+        if syncFile=='':
             return
         
-        self.syncFile = str(syncFile)
+        self.syncFile = syncFile
 
         syncDataset = Dataset(self.syncFile)
         sync_frame_times, _ = get_sync_line_data(syncDataset, 'cam1_exposure')
@@ -164,6 +160,22 @@ class lickVideo():
         self.sync_lick_frames = np.searchsorted(sync_frame_times, sync_lick_times) - 1
         
         self.syncDataItems = self.plot1.plot(self.sync_lick_frames, np.ones(len(self.sync_lick_frames)), size=0.5, pen=None, symbol='t')
+    
+    def get_file(self, hint='', file_filter='*'):
+        
+        if self.data_directory is None or not os.path.exists(self.data_directory):
+            file_path = QtGui.QFileDialog.getOpenFileName(self.mainWin, hint, filter=file_filter)
+        else:
+            file_path = QtGui.QFileDialog.getOpenFileName(self.mainWin, hint, self.data_directory, filter=file_filter)
+        
+        if isinstance(file_path, tuple):
+            file_path = str(file_path[0])
+        
+        file_path = str(file_path)
+        print('Getting file: ' + file_path)
+        
+        return file_path
+        
     
     def saveAnnotationData(self, automaticName=False):
         now = datetime.now()
