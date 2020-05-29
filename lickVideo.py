@@ -41,6 +41,15 @@ class lickVideo():
         self.videoFileName = None
         self.data_directory = None
         self.key_shortcuts = {}
+        self.annotation_category_dict = {
+                'no label': 0,
+                'tongue': 1,
+                'paw': 2,
+                'groom': 3,
+                'air lick': 4,
+                'chin': 5,
+                'air groom': 6,
+                'no contact': 7}
         
         self.config_path = os.path.dirname(os.path.realpath(__file__))
         self.load_config(default=True)
@@ -344,7 +353,18 @@ class lickVideo():
         self.controlPanelLayout.addWidget(self.nocontactRadioButton, 1, 8, 1, 1)
         self.nocontact_counter_label = QtGui.QLabel("()")
         self.controlPanelLayout.addWidget(self.nocontact_counter_label, 1, 9, 1, 1)
-
+        
+        self.seek_frame_dropdown = QtGui.QComboBox()
+        self.seek_frame_dropdown.addItems(['tongue', 'paw', 'groom', 'chin', 'air lick', 'air groom', 'no contact', 'no label'])
+        self.seek_frame_dropdown.currentIndexChanged.connect(self.change_seek_selection)
+        self.controlPanelLayout.addWidget(self.seek_frame_dropdown, 1, 1, 1, 1)
+        self.seek_label = QtGui.QLabel("Seek to: ")
+        self.controlPanelLayout.addWidget(self.seek_label, 1, 0, 1, 1)
+        self.current_seek_selection = 'tongue'
+        
+    def change_seek_selection(self):
+        self.current_seek_selection = self.seek_frame_dropdown.currentText()
+        
     def advanceFrame(self, toNextDetectorFrame=False):
         
         self.frameIndex += 1
@@ -372,6 +392,36 @@ class lickVideo():
             
         self.updatePlot()
     
+    def seek_category_advance(self):
+        desired_category = self.current_seek_selection
+        desired_value = self.annotation_category_dict[desired_category]
+        
+        self.frameIndex += 1
+        if self.frameIndex > self.totalVidFrames:
+            self.frameIndex = self.totalVidFrames
+        
+        category_frames = np.where(self.lickStates == desired_value)[0]
+        if len(category_frames>0):
+            next_category_frame_index = np.searchsorted(category_frames, self.frameIndex)
+            next_category_frame_index = np.min([next_category_frame_index, len(category_frames)-1])
+            next_category_frame = category_frames[next_category_frame_index]
+            self.frameIndex = next_category_frame
+        
+        self.updatePlot()
+        
+    def seek_category_back(self):
+        desired_category = self.current_seek_selection
+        desired_value = self.annotation_category_dict[desired_category]
+        
+        category_frames = np.where(self.lickStates == desired_value)[0]
+        if len(category_frames>0):
+            last_category_frame_index = np.searchsorted(category_frames, self.frameIndex) - 1
+            last_category_frame_index = np.max([last_category_frame_index, 0])
+            last_category_frame = category_frames[last_category_frame_index]
+            self.frameIndex = last_category_frame
+        
+        self.updatePlot()
+        
     def scrollFrame(self):
         linePos = int(np.round(self.plot1_infLine.value()))
         self.frameIndex = linePos
@@ -422,14 +472,14 @@ class lickVideo():
     def setRadioButtonStates(self):
         if self.lickStates is not None:
             thisState = self.lickStates[self.frameIndex]
-            if thisState==0: self.noLickRadioButton.click()
-            elif thisState==1: self.lickRadioButton.click()
-            elif thisState==2: self.runRadioButton.click()
-            elif thisState==3: self.groomRadioButton.click()
-            elif thisState==4: self.missRadioButton.click()
-            elif thisState==5: self.chinRadioButton.click()
-            elif thisState==6: self.airgroomRadioButton.click()
-            elif thisState==7: self.nocontactRadioButton.click()
+            if thisState==self.annotation_category_dict['no label']: self.noLickRadioButton.click()
+            elif thisState==self.annotation_category_dict['tongue']: self.lickRadioButton.click()
+            elif thisState==self.annotation_category_dict['paw']: self.runRadioButton.click()
+            elif thisState==self.annotation_category_dict['groom']: self.groomRadioButton.click()
+            elif thisState==self.annotation_category_dict['air lick']: self.missRadioButton.click()
+            elif thisState==self.annotation_category_dict['chin']: self.chinRadioButton.click()
+            elif thisState==self.annotation_category_dict['air groom']: self.airgroomRadioButton.click()
+            elif thisState==self.annotation_category_dict['no contact']: self.nocontactRadioButton.click()
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
@@ -497,11 +547,14 @@ class lickVideo():
             self.nocontactRadioButton.click()
         if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('play', 'Key_Space')]:
             self.playVideoButton.click()
-        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('last_detector_frame', 'Key_Comma')]:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('last_detector_frame', 'Key_Down')]:
             self.backFrame(toLastDetectorFrame=True)
-        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('next_detector_frame', 'Key_Period')]:
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('next_detector_frame', 'Key_Up')]:
             self.advanceFrame(toNextDetectorFrame=True)
-            
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('next_category_frame', 'Key_Period')]:
+            self.seek_category_advance()
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('last_category_frame', 'Key_Comma')]:
+            self.seek_category_back()
             
 def get_sync_line_data(syncDataset, line_label=None, channel=None):
     ''' Get rising and falling edge times for a particular line from the sync h5 file

@@ -11,5 +11,7 @@
   "chin": "Key_C",
   "air_lick": "Key_A",
   "air_groom": "Key_F",
-  "no_contact": "Key_N"
+  "no_contact": "Key_N",
+  "next_category_frame": "Key_Period",
+  "last_category_frame": "Key_Comma"
 }
