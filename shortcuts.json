@@ -9,9 +9,11 @@
   "paw": "Key_P",
   "groom": "Key_G",
   "chin": "Key_C",
+  "tongue_out": "Key_W",
   "air_lick": "Key_A",
   "air_groom": "Key_F",
   "no_contact": "Key_N",
+  "ambiguous": "Key_Q",
   "next_category_frame": "Key_Period",
   "last_category_frame": "Key_Comma"
 }

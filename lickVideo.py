@@ -49,7 +49,9 @@ class lickVideo():
                 'air lick': 4,
                 'chin': 5,
                 'air groom': 6,
-                'no contact': 7}
+                'no contact': 7,
+                'tongue out': 8,
+                'ambiguous': 9}
         
         self.config_path = os.path.dirname(os.path.realpath(__file__))
         self.load_config(default=True)
@@ -326,6 +328,13 @@ class lickVideo():
         self.chin_counter_label = QtGui.QLabel("()")
         self.controlPanelLayout.addWidget(self.chin_counter_label, 0, 11, 1, 1)
         
+        self.tongueOutRadioButton = QtGui.QRadioButton('tongue out')
+        self.tongueOutRadioButton.clicked.connect(self.tongueOutRadioButtonCallback)
+        self.tongueOutRadioButton.setToolTip('Shortcut: ' + self.key_shortcuts.get('tongue out', 'W') + ' use when tongue is on way to spout')
+        self.controlPanelLayout.addWidget(self.tongueOutRadioButton, 0, 12, 1, 1)
+        self.tongueOut_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.tongueOut_counter_label, 0, 13, 1, 1)
+        
         self.missRadioButton = QtGui.QRadioButton('air lick')
         self.missRadioButton.clicked.connect(self.missRadioButtonCallback)
         self.missRadioButton.setToolTip('Shortcut: ' + self.key_shortcuts.get('air_lick', 'A') + ' use when mouse licks but does not touch spout')
@@ -354,8 +363,16 @@ class lickVideo():
         self.nocontact_counter_label = QtGui.QLabel("()")
         self.controlPanelLayout.addWidget(self.nocontact_counter_label, 1, 9, 1, 1)
         
+        self.ambiguousRadioButton = QtGui.QRadioButton('ambiguous')
+        self.ambiguousRadioButton.clicked.connect(self.ambiguousRadioButtonCallback)
+        self.ambiguousRadioButton.setToolTip('Shortcut: ' + self.key_shortcuts.get('ambiguous', 'Q') + ' use to mark frames for further review')
+        self.controlPanelLayout.addWidget(self.ambiguousRadioButton, 1, 12, 1, 1)
+        self.ambiguous_counter_label = QtGui.QLabel("()")
+        self.controlPanelLayout.addWidget(self.ambiguous_counter_label, 1, 13, 1, 1)
+        
         self.seek_frame_dropdown = QtGui.QComboBox()
-        self.seek_frame_dropdown.addItems(['tongue', 'paw', 'groom', 'chin', 'air lick', 'air groom', 'no contact', 'no label'])
+        self.seek_frame_dropdown.addItems(list(self.annotation_category_dict.keys()))
+        #self.seek_frame_dropdown.addItems(['tongue', 'paw', 'groom', 'chin', 'tongue out', 'air lick', 'air groom', 'no contact', 'no label', 'ambiguous'])
         self.seek_frame_dropdown.currentIndexChanged.connect(self.change_seek_selection)
         self.controlPanelLayout.addWidget(self.seek_frame_dropdown, 1, 1, 1, 1)
         self.seek_label = QtGui.QLabel("Seek to: ")
@@ -480,6 +497,8 @@ class lickVideo():
             elif thisState==self.annotation_category_dict['chin']: self.chinRadioButton.click()
             elif thisState==self.annotation_category_dict['air groom']: self.airgroomRadioButton.click()
             elif thisState==self.annotation_category_dict['no contact']: self.nocontactRadioButton.click()
+            elif thisState==self.annotation_category_dict['ambiguous']: self.ambiguousRadioButton.click()
+            elif thisState==self.annotation_category_dict['tongue out']: self.tongueOutRadioButton.click()
             
     def lickRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 1
@@ -512,6 +531,14 @@ class lickVideo():
     def nocontactRadioButtonCallback(self):
         self.lickStates[self.frameIndex] = 7
         self.reset_counters()
+        
+    def tongueOutRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 8
+        self.reset_counters()
+    
+    def ambiguousRadioButtonCallback(self):
+        self.lickStates[self.frameIndex] = 9
+        self.reset_counters()
     
     def reset_counters(self):
         self.lick_counter_label.setText("(" + str(np.sum(self.lickStates==1)) + ")")
@@ -522,6 +549,9 @@ class lickVideo():
         self.chin_counter_label.setText("(" + str(np.sum(self.lickStates==5)) + ")")
         self.airgroom_counter_label.setText("(" + str(np.sum(self.lickStates==6)) + ")")
         self.nocontact_counter_label.setText("(" + str(np.sum(self.lickStates==7)) + ")")
+        self.tongueOut_counter_label.setText("(" + str(np.sum(self.lickStates==8)) + ")")
+        self.ambiguous_counter_label.setText("(" + str(np.sum(self.lickStates==9)) + ")")
+        
   
     def keyPressCallback(self, event):
         
@@ -545,6 +575,10 @@ class lickVideo():
             self.airgroomRadioButton.click()
         if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('no_contact', 'Key_N')]:
             self.nocontactRadioButton.click()
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('tongue_out', 'Key_W')]:
+            self.tongueOutRadioButton.click()
+        if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('ambiguous', 'Key_Q')]:
+            self.ambiguousRadioButton.click()
         if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('play', 'Key_Space')]:
             self.playVideoButton.click()
         if event.key() == QtCore.Qt.__dict__[self.key_shortcuts.get('last_detector_frame', 'Key_Down')]:
