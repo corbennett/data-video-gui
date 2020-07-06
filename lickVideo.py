@@ -152,6 +152,7 @@ class lickVideo():
         print('loading config file: ' + configFile)
         with open(configFile) as file:
             self.key_shortcuts = json.load(file)
+            self.sync_camera_label = self.key_shortcuts['sync_camera_label']
         
     def loadAnnotationData(self):
 
@@ -183,7 +184,7 @@ class lickVideo():
         self.syncFile = syncFile
 
         syncDataset = Dataset(self.syncFile)
-        sync_frame_times, _ = get_sync_line_data(syncDataset, 'cam1_exposure')
+        sync_frame_times, _ = get_sync_line_data(syncDataset, self.sync_camera_label)
         sync_lick_times, _ = get_sync_line_data(syncDataset, channel=31)
         
         print(len(sync_frame_times))
@@ -411,7 +412,7 @@ class lickVideo():
         self.updatePlot()
     
     def seek_category_advance(self):
-        desired_category = self.current_seek_selection
+        desired_category = str(self.current_seek_selection)
         desired_value = self.annotation_category_dict[desired_category]
         
         self.frameIndex += 1
