@@ -51,7 +51,8 @@ class lickVideo():
                 'air groom': 6,
                 'no contact': 7,
                 'tongue out': 8,
-                'ambiguous': 9}
+                'ambiguous': 9,
+                'all labels': ''}
         
         self.config_path = os.path.dirname(os.path.realpath(__file__))
         self.load_config(default=True)
@@ -97,7 +98,7 @@ class lickVideo():
             self.vid.release()
             videoChange = True
         
-        videoFileName = self.get_file('Load Video File', '*.avi')
+        videoFileName = self.get_file('Load Video File', '*.avi *.mp4')
 
         if videoFileName=='':
             return
@@ -371,7 +372,7 @@ class lickVideo():
         self.controlPanelLayout.addWidget(self.ambiguous_counter_label, 1, 13, 1, 1)
         
         self.seek_frame_dropdown = QtGui.QComboBox()
-        self.seek_frame_dropdown.addItems(list(self.annotation_category_dict.keys()))
+        self.seek_frame_dropdown.addItems(list(sorted(self.annotation_category_dict.keys())))
         #self.seek_frame_dropdown.addItems(['tongue', 'paw', 'groom', 'chin', 'tongue out', 'air lick', 'air groom', 'no contact', 'no label', 'ambiguous'])
         self.seek_frame_dropdown.currentIndexChanged.connect(self.change_seek_selection)
         self.controlPanelLayout.addWidget(self.seek_frame_dropdown, 1, 1, 1, 1)
@@ -417,7 +418,11 @@ class lickVideo():
         if self.frameIndex > self.totalVidFrames:
             self.frameIndex = self.totalVidFrames
         
-        category_frames = np.where(self.lickStates == desired_value)[0]
+        if desired_category == 'all labels':
+            category_frames = np.where(self.lickStates > 0)[0]
+        else:
+            category_frames = np.where(self.lickStates == desired_value)[0]
+            
         if len(category_frames>0):
             next_category_frame_index = np.searchsorted(category_frames, self.frameIndex)
             next_category_frame_index = np.min([next_category_frame_index, len(category_frames)-1])
@@ -430,7 +435,11 @@ class lickVideo():
         desired_category = self.current_seek_selection
         desired_value = self.annotation_category_dict[desired_category]
         
-        category_frames = np.where(self.lickStates == desired_value)[0]
+        if desired_category == 'all labels':
+            category_frames = np.where(self.lickStates > 0)[0]
+        else:
+            category_frames = np.where(self.lickStates == desired_value)[0]
+            
         if len(category_frames>0):
             last_category_frame_index = np.searchsorted(category_frames, self.frameIndex) - 1
             last_category_frame_index = np.max([last_category_frame_index, 0])
