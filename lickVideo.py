@@ -21,7 +21,6 @@ from datetime import datetime
 from sync_dataset import Dataset
 import json
 
-
 def start():
     #QtGui.QApplication.setGraphicsSystem("raster")
     app = QtGui.QApplication.instance()
@@ -136,7 +135,7 @@ class lickVideo():
             self.updatePlot()
         
         self.annotationDataSaved = False
-    
+        
     def load_config(self, default=False):
         
         if default:
@@ -274,10 +273,14 @@ class lickVideo():
         loadSync_action = QtGui.QAction('&Load Sync Data', self.mainWin)
         loadSync_action.triggered.connect(self.loadSyncFile)
         
+        load_config_action = QtGui.QAction('&Load Config', self.mainWin)
+        load_config_action.triggered.connect(self.load_config)
+        
         file_menu.addAction(open_action)
         file_menu.addAction(loadAnnotations_action)
         file_menu.addAction(saveAnnotations_action)
         file_menu.addAction(loadSync_action)
+        file_menu.addAction(load_config_action)
              
     def createControlPanel(self):
         #make layout for gui controls and add to main layout
