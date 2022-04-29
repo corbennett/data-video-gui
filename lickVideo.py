@@ -16,10 +16,11 @@ import numpy as np
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 import cv2
-import os
+import os, glob
 from datetime import datetime
 from sync_dataset import Dataset
 import json
+import alignCameraFrames
 
 def start():
     #QtGui.QApplication.setGraphicsSystem("raster")
@@ -84,6 +85,8 @@ class lickVideo():
         self.imageViewBox.addItem(self.imageItem)   
         self.mainLayout.addWidget(self.imageLayout, 1, 0)
         self.mainLayout.setRowMinimumHeight(1, 500)
+        self.mainLayout.setRowStretch(1, 7)
+        self.mainLayout.setRowStretch(2, 2)
         self.mainWidget.setLayout(self.mainLayout)
         
         self.mainWin.show()
@@ -151,7 +154,7 @@ class lickVideo():
         print('loading config file: ' + configFile)
         with open(configFile) as file:
             self.key_shortcuts = json.load(file)
-            self.sync_camera_label = self.key_shortcuts['sync_camera_label']
+            #self.sync_camera_label = self.key_shortcuts['sync_camera_label']
         
     def loadAnnotationData(self):
 
@@ -183,12 +186,30 @@ class lickVideo():
         self.syncFile = syncFile
 
         syncDataset = Dataset(self.syncFile)
-        sync_frame_times, _ = get_sync_line_data(syncDataset, self.sync_camera_label)
+        
+        #infer camera label; otherwise read from config
+        self.sync_camera_label = [l for l in ['behavior', 'eye', 'face'] if l in self.videoFileName]
+        if len(self.sync_camera_label)==0:
+            self.sync_camera_label = self.key_shortcuts['sync_camera_label']
+        else:
+            self.sync_camera_label = self.sync_camera_label[0]
+
+        cam_json = glob.glob(os.path.join(self.data_directory, '*.'+self.sync_camera_label+'.json'))
+        print('getting camera json {}'.format(cam_json))
+        if len(cam_json)>0:
+            cam_json = cam_json[0]
+        else:
+            print('could not find cam json')
+
+        sync_frame_times = get_frame_exposure_times(syncDataset, cam_json)
+        #sync_frame_times, _ = get_sync_line_data(syncDataset, self.sync_camera_label)
         sync_lick_times, _ = get_sync_line_data(syncDataset, channel=31)
         
         print(len(sync_frame_times))
         print(len(sync_lick_times))
         
+        sync_frame_times = np.insert(sync_frame_times, 0, 0) #correct for MVR metadata frame
+
         self.sync_lick_frames = np.searchsorted(sync_frame_times, sync_lick_times) - 1
         
         self.syncDataItems = self.plot1.plot(self.sync_lick_frames, np.ones(len(self.sync_lick_frames)), size=0.5, pen=None, symbol='t')
@@ -631,7 +652,59 @@ def get_sync_line_data(syncDataset, line_label=None, channel=None):
     falling = syncDataset.get_falling_edges(channel)/sample_freq
     
     return rising, falling
-   
+ 
+def extract_lost_frames_from_json(cam_json):
+    
+    lost_count = cam_json['RecordingReport']['FramesLostCount']
+    if lost_count == 0:
+        return []
+    
+    lost_string = cam_json['RecordingReport']['LostFrames'][0]
+    lost_spans = lost_string.split(',')
+    
+    lost_frames = []
+    for span in lost_spans:
         
+        start_end = span.split('-')
+        if len(start_end)==1:
+            lost_frames.append(int(start_end[0]))
+        else:
+            lost_frames.extend(np.arange(int(start_end[0]), int(start_end[1])+1))
+    
+    return np.array(lost_frames)-1 #you have to subtract one since the json starts indexing at 1 according to Totte
+    
+
+def get_frame_exposure_times(sync_dataset, cam_json):
+    
+    if isinstance(cam_json, str):
+        cam_json = read_json(cam_json)
+        
+    exposure_sync_line_label_dict = {
+            'Eye': 'eye_cam_exposing',
+            'Face': 'face_cam_exposing',
+            'Behavior': 'beh_cam_exposing'}
+    
+    cam_label =  cam_json['RecordingReport']['CameraLabel']
+    sync_line = exposure_sync_line_label_dict[cam_label]
+    
+    exposure_times = sync_dataset.get_rising_edges(sync_line, units='seconds')
+    
+    lost_frames = extract_lost_frames_from_json(cam_json)
+    total_frames = cam_json['RecordingReport']['FramesRecorded']
+    
+    frame_times = [e for ie, e in enumerate(exposure_times) if ie not in lost_frames]
+    frame_times = frame_times[:total_frames] #trim extra exposures
+    frame_times = np.insert(frame_times, 0, 0) #insert dummy time for metadata frame
+    
+    return np.array(frame_times)  
+
+def read_json(jsonfilepath):
+    
+    with open(jsonfilepath, 'r') as f:
+        contents = json.load(f)
+    
+    return contents
+
+
 if __name__ == '__main__':
     start()

@@ -116,7 +116,8 @@ class Dataset(object):
 
         """
         self.dfile = h5.File(path, 'r')
-        self.meta_data = eval(self.dfile['meta'].value)
+        #self.meta_data = eval(self.dfile['meta'].value)
+        self.meta_data = eval(self.dfile['meta'][()])
         self.line_labels = self.meta_data['line_labels']
         self.times = self._process_times()
         return self.dfile
@@ -186,7 +187,8 @@ class Dataset(object):
         Returns the data for all bits.
 
         """
-        return self.dfile['data'].value[:, -1]
+        #return self.dfile['data'].value[:, -1]
+        return self.dfile['data'][()][:, -1]
 
     def get_all_times(self, units='samples'):
         """
@@ -215,7 +217,8 @@ class Dataset(object):
         """
         Returns all counter values and their cooresponding IO state.
         """
-        return self.dfile['data'].value
+        #return self.dfile['data'].value
+        return self.dfile['data'][()]
 
     def get_events_by_bit(self, bit, units='samples'):
         """

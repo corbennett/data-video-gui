@@ -16,5 +16,5 @@
   "ambiguous": "Key_Q",
   "next_category_frame": "Key_Period",
   "last_category_frame": "Key_Comma",
-  "sync_camera_label": "face_frame_received"
+  "sync_camera_label": "Side"
 }
